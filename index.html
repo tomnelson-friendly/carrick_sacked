@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Has Carrick been sacked?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#f6f3f3; --ink:#1c1214; --muted:#6b5d60; --red:#b3121c; --rule:#ddd2d3; --panel:#fff; color-scheme:light; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#170c0e; --ink:#f3e9ea; --muted:#b29fa2; --red:#ff4b55; --rule:#3a2629; --panel:#22151a; color-scheme:dark; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:400 1.05rem/1.55 "Barlow", system-ui, sans-serif; }
+  main { max-width:38rem; margin:0 auto; padding:max(2.5rem, env(safe-area-inset-top)) 1.25rem 3rem; }
+  .q { font:700 1.35rem/1.2 "Big Shoulders Display", "Arial Narrow", sans-serif; margin:0; color:var(--muted); }
+  .answer { font:900 clamp(5rem, 26vw, 10rem)/.85 "Big Shoulders Display", "Arial Narrow", Impact, sans-serif; margin:.6rem 0 1rem; }
+  .answer.sacked { color:var(--red); }
+  .sub { font-size:1.15rem; margin:0 0 2rem; }
+  .sub a { color:inherit; }
+  h2 { font:700 1.3rem/1.2 "Big Shoulders Display", "Arial Narrow", sans-serif; margin:0 0 .75rem; }
+  ul { list-style:none; margin:0 0 2rem; padding:0; border-top:1px solid var(--rule); }
+  li { border-bottom:1px solid var(--rule); padding:.8rem 0; }
+  li a { color:var(--ink); font-weight:600; text-decoration:none; }
+  li a:hover, li a:focus-visible { text-decoration:underline; }
+  li time { display:block; font-size:.88rem; color:var(--muted); }
+  .empty { color:var(--muted); }
+  .stamp { font-size:.9rem; color:var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <p class="q">Has Michael Carrick been sacked as Man United manager?</p>
+  <p class="answer" id="answer">…</p>
+  <p class="sub" id="sub">Checking the BBC Sport feeds.</p>
+  <h2>Latest from BBC Sport</h2>
+  <ul id="news"></ul>
+  <p class="stamp" id="stamp"></p>
+</main>
+<script>
+  const fmt = iso => iso ? new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "";
+  async function load() {
+    try {
+      const res = await fetch("status.json?t=" + Date.now());
+      const s = await res.json();
+      const a = document.getElementById("answer");
+      const sub = document.getElementById("sub");
+      a.textContent = s.sacked ? "Yes." : "Not yet.";
+      a.classList.toggle("sacked", s.sacked);
+      sub.textContent = "";
+      if (s.sacked && s.confirmed_by) {
+        const link = document.createElement("a");
+        link.href = s.confirmed_by.link; link.textContent = s.confirmed_by.title;
+        sub.append("BBC Sport: ", link);
+      } else {
+        sub.textContent = "No BBC Sport headline has confirmed he’s gone.";
+      }
+      const ul = document.getElementById("news");
+      ul.textContent = "";
+      if (!s.headlines.length) {
+        const li = document.createElement("li");
+        li.className = "empty"; li.textContent = "No recent BBC Sport stories mention Carrick.";
+        ul.append(li);
+      }
+      s.headlines.forEach(h => {
+        const li = document.createElement("li");
+        const link = document.createElement("a");
+        link.href = h.link; link.textContent = h.title;
+        const t = document.createElement("time");
+        t.textContent = fmt(h.published);
+        li.append(link, t);
+        ul.append(li);
+      });
+      document.getElementById("stamp").textContent =
+        s.checked ? "Feeds last checked " + fmt(s.checked) + ". Updates every 15 minutes." : "Waiting for the first check.";
+    } catch (e) {
+      document.getElementById("sub").textContent = "Couldn’t load status.json. Check that the GitHub Action has run.";
+    }
+  }
+  load();
+  setInterval(load, 5 * 60 * 1000);
+</script>
+</body>
+</html>
